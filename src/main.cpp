@@ -3,56 +3,8 @@
 #include <optional>
 #include <sstream>
 #include <vector>
-
-enum class TokenType {
-    _return,
-    int_lit,
-    semi
-};
-struct Token {
-    TokenType type ;
-    std::optional<std::string> value;
-};
-
-std::vector<Token> Tokenization(const std::string& str) {
-    int idx = 0 ;
-    std::string cur_str = "" ;
-    std::vector<Token> ret ;
-
-    while (idx < str.size()) {
-
-        if (str[idx] == ' ') {
-            idx += 1 ;
-            continue;
-        }
-
-        if (std::isalpha(str[idx])) {
-            int jdx = idx ;
-            while (jdx < str.size() && std::isalpha(str[jdx]))
-                cur_str += str[jdx] , jdx += 1 ;
-            idx = jdx ;
-            ret.push_back({.type = TokenType::_return}) ;
-            cur_str = "" ;
-        }
-
-        if (std::isdigit(str[idx])) {
-            int jdx = idx ;
-            while (jdx < str.size() && std::isdigit(str[jdx]))
-                cur_str += str[jdx] , jdx += 1 ;
-            idx = jdx ;
-            ret.push_back({.type = TokenType::int_lit , .value = cur_str}) ;
-            cur_str = "" ;
-        }
-
-        if (str[idx] == ';') {
-            ret.push_back({.type = TokenType::semi}) ;
-            cur_str = "" ;
-            idx += 2 ;
-
-        }
-    }
-    return ret ;
-}
+#include "Tokenization.hpp"
+using namespace std ;
 
 std::string tokens_to_asm(const std::vector<Token>& tokens) {
     std::stringstream output ;
@@ -60,7 +12,7 @@ std::string tokens_to_asm(const std::vector<Token>& tokens) {
     output << "global _start\n_start:\n";
     for (int i = 0 ; i < tokens.size() ; i++) {
         const Token token = tokens[i] ;
-        if (token.type == TokenType::_return) {
+        if (token.type == TokenType::exit) {
             if (i + 1 < tokens.size() && tokens.at(i + 1).type == TokenType::int_lit) {
                 if (i + 2 < tokens.size() && tokens.at(i + 2).type == TokenType::semi) {
                     output << "    mov rax, 60\n" ;
@@ -86,10 +38,13 @@ int main(int argc , char * argv[])  {
         contents_stream << input.rdbuf();
         contents = contents_stream.str();
     }
-    std::vector<Token> ret = Tokenization(contents) ;
+
+    Tokenizer tokenizer(std::move(contents)) ;
+    std::vector<Token> tokens = tokenizer.tokenize() ;
+
     {
         std::fstream file("out.asm" , std::ios::out) ;
-        file << tokens_to_asm(ret) ;
+       file << tokens_to_asm(tokens) ;
     }
 
     system("nasm -felf64 out.asm") ;
