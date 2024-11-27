@@ -1,0 +1,3 @@
+/home/hp/Omani/cmake-build-debug/CMakeFiles/Omani.dir
+/home/hp/Omani/cmake-build-debug/CMakeFiles/edit_cache.dir
+/home/hp/Omani/cmake-build-debug/CMakeFiles/rebuild_cache.dir
