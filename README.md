@@ -6,3 +6,15 @@ Now, I’m taking the first steps toward understanding and implementing the core
 ## What Is OMANI Lang?
 Omani Lang is a simple, yet expressive, programming language designed for learning purposes. 
 Its syntax and structure are inspired by modern programming languages but aim to remain minimal to focus on compiler design.
+
+## Building
+
+Requires `nasm` and `ld` on a Linux operating system.
+
+```bash
+git clone https://github.com/orosmatthew/hydrogen-cpp
+cd hydrogen-cpp
+mkdir build
+cmake -S . -B build
+cmake --build build
+```
