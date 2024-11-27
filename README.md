@@ -12,7 +12,7 @@ Its syntax and structure are inspired by modern programming languages but aim to
 Requires `nasm` and `ld` on a Linux operating system.
 
 ```bash
-git clone https://github.com/orosmatthew/hydrogen-cpp
+git clone https://github.com/AhmedOmani/OmaniProgrammingLanguage
 cd hydrogen-cpp
 mkdir build
 cmake -S . -B build
