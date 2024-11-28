@@ -29,7 +29,7 @@ public:
         std::vector<Token> tokens ;
 
         while (peak().has_value()) {
-            std::cout << cur_idx << std::endl;
+            //std::cout << cur_idx << std::endl;
             if (std::isalpha(peak().value())) {
                 cur_str.push_back(consume()) ;
 
@@ -77,7 +77,7 @@ public:
     }
 
 private:
-    [[nodiscard]] std::optional<char> peak(int jump = 1) const {
+    [[nodiscard]] inline std::optional<char> peak(int jump = 1) const {
        if (cur_idx + jump > file_content.length()) {
             return {};
        } else {
@@ -85,7 +85,7 @@ private:
        }
     }
 
-    char consume() {
+    inline char consume() {
         return file_content.at(cur_idx++) ;
     }
     std::string file_content;
