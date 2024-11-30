@@ -1,1 +1,4 @@
-exit 100;
+omani x = 7 ;
+omani y = 8 ;
+omani z = y ;
+exit(z);

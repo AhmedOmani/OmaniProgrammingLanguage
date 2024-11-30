@@ -9,7 +9,12 @@
 enum class TokenType {
     exit,
     int_lit,
-    semi
+    semi,
+    open_paren ,
+    close_paren,
+    ident,
+    omani,
+    eq
 };
 
 struct Token {
@@ -29,7 +34,7 @@ public:
         std::vector<Token> tokens ;
 
         while (peak().has_value()) {
-            //std::cout << cur_idx << std::endl;
+
             if (std::isalpha(peak().value())) {
                 cur_str.push_back(consume()) ;
 
@@ -38,11 +43,13 @@ public:
 
                 if (cur_str == "exit") {
                     tokens.push_back({.type = TokenType::exit}) ;
-                    cur_str.clear() ;
-                } else {
-                    std::cerr << "Enta K7yan yasta! Ekteb Syntax s7 pls!\n" ;
-                    exit(EXIT_FAILURE) ;
+                } else if (cur_str == "omani") {
+                    tokens.push_back({.type = TokenType::omani}) ;
                 }
+                else {
+                    tokens.push_back({.type = TokenType::ident , .value = cur_str}) ;
+                }
+                cur_str.clear() ;
             }
 
             else if (std::isdigit(peak().value())) {
@@ -58,13 +65,26 @@ public:
 
             else if (peak().value() == ';') {
                 tokens.push_back({.type = TokenType::semi});
-                cur_str.push_back(consume()) ;
-                continue;
+                consume() ;
+            }
+
+            else if (peak().value() == '=') {
+                tokens.push_back({.type = TokenType::eq});
+                consume() ;
             }
 
             else if (std::isspace(peak().value())) {
                 consume();
-                continue ;
+            }
+
+            else if (peak().value() == '(') {
+                tokens.push_back({.type = TokenType::open_paren}) ;
+                consume() ;
+            }
+
+            else if (peak().value() == ')') {
+                tokens.push_back({.type = TokenType::close_paren}) ;
+                consume() ;
             }
 
             else {
@@ -77,11 +97,11 @@ public:
     }
 
 private:
-    [[nodiscard]] inline std::optional<char> peak(int jump = 1) const {
-       if (cur_idx + jump > file_content.length()) {
+    [[nodiscard]] inline std::optional<char> peak(int jump = 0) const {
+       if (cur_idx + jump >= file_content.length()) {
             return {};
        } else {
-            return file_content.at(cur_idx) ;
+            return file_content.at(cur_idx + jump) ;
        }
     }
 
