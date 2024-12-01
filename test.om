@@ -1,4 +1,3 @@
-omani x = 7 ;
-omani y = 8 ;
-omani z = y ;
-exit(z);
+omani x = 7 + 4 + 4 ;
+omani y = x + 5 ;
+exit(y);

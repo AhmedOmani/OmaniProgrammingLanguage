@@ -4,42 +4,12 @@
 #include <sstream>
 #include <vector>
 #include "generation.h"
-#include "parser.h"
+#include "ParserDebugger.h"
+
+#include "Arena.h"
+
 using namespace std ;
 
-
-// Helper functions to print nodes
-std::string print_token(const Token& token) {
-    return token.value.value(); // Adjust based on Token definition.
-}
-
-std::string print_node_expr(const NodeExpr& expr) {
-    return std::visit([](auto&& arg) -> std::string {
-        using T = std::decay_t<decltype(arg)>;
-        if constexpr (std::is_same_v<T, NodeExprIntLit>)
-            return "IntLit(" + print_token(arg.int_lit) + ")";
-        else if constexpr (std::is_same_v<T, NodeExprIdent>)
-            return "Ident(" + print_token(arg.ident) + ")";
-    }, expr.var);
-}
-
-std::string print_node_stmt(const NodeStmt& stmt) {
-    return std::visit([](auto&& arg) -> std::string {
-        using T = std::decay_t<decltype(arg)>;
-        if constexpr (std::is_same_v<T, NodeStmtExit>)
-            return "ExitStmt(" + print_node_expr(arg.expr) + ")";
-        else if constexpr (std::is_same_v<T, NodeStmtOmani>)
-            return "OmaniStmt(ident: " + print_token(arg.ident) + ", expr: " + print_node_expr(arg.expr) + ")";
-    }, stmt.var);
-}
-
-std::string print_node_prog(const NodeProg& prog) {
-    std::string result = "Program:\n";
-    for (const auto& stmt : prog.stmts) {
-        result += "  " + print_node_stmt(stmt) + "\n";
-    }
-    return result;
-}
 
 void debugTokens(vector<Token> &tokens) {
     for (int i = 0 ; i < tokens.size() ; i++) {
@@ -67,6 +37,9 @@ void debugTokens(vector<Token> &tokens) {
         if (tokens[i].type == TokenType::ident) {
             cout << "ident " << tokens[i].value.value() << endl;
         }
+        if (tokens[i].type == TokenType::plus) {
+            cout << "plus " << " + " << endl;
+        }
     }
 }
 int main(int argc , char * argv[])  {
@@ -75,6 +48,8 @@ int main(int argc , char * argv[])  {
         std::cerr <<"Omani <input.om>" << std::endl;
         return EXIT_FAILURE ;
     }
+
+
     std::string contents;
     {
         std::stringstream contents_stream;
@@ -91,7 +66,9 @@ int main(int argc , char * argv[])  {
     //Parsing
     Parser parser(std::move(tokens)) ;
     std::optional<NodeProg> tree = parser.parse_prog() ;
-    cout << print_node_prog(tree.value())<<endl;;
+
+    DebugPrinter debug ;
+    cout << debug.print(tree) ;
 
     if (!tree.has_value()) {
         std::cerr << "No exit statement found!" << std::endl;

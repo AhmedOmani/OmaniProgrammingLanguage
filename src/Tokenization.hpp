@@ -14,12 +14,37 @@ enum class TokenType {
     close_paren,
     ident,
     omani,
-    eq
+    eq ,
+    plus
 };
 
 struct Token {
-    TokenType type ;
+    TokenType type;
     std::optional<std::string> value;
+
+    std::string toString() const {
+        std::string typeStr = tokenTypeToString(type);
+        if (value.has_value()) {
+            return typeStr + "('" + value.value() + "')";
+        }
+        return typeStr;
+    }
+
+    private:
+    static std::string tokenTypeToString(TokenType type) {
+        switch (type) {
+            case TokenType::exit: return "exit";
+            case TokenType::int_lit: return "int_lit";
+            case TokenType::semi: return "semi";
+            case TokenType::open_paren: return "open_paren";
+            case TokenType::close_paren: return "close_paren";
+            case TokenType::ident: return "ident";
+            case TokenType::omani: return "omani";
+            case TokenType::eq: return "eq";
+            case TokenType::plus: return "plus";
+            default: return "unknown";
+        }
+    }
 };
 
 class Tokenizer  {
@@ -86,7 +111,10 @@ public:
                 tokens.push_back({.type = TokenType::close_paren}) ;
                 consume() ;
             }
-
+            else if (peak().value() == '+') {
+                tokens.push_back({.type = TokenType::plus}) ;
+                consume() ;
+            }
             else {
                 std::cerr << "Enta K7yan yasta! Ekteb Syntax s7 pls!\n" ;
                 exit(EXIT_FAILURE) ;
