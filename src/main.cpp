@@ -40,6 +40,16 @@ void debugTokens(vector<Token> &tokens) {
         if (tokens[i].type == TokenType::plus) {
             cout << "plus " << " + " << endl;
         }
+        if (tokens[i].type == TokenType::mult) {
+            cout << "mult " << " - " << endl;
+        }
+        if (tokens[i].type == TokenType::sub) {
+            cout << "sub " << " - " << endl;
+        }
+        if (tokens[i].type == TokenType::div) {
+            cout << "div " << " / " << endl;
+        }
+
     }
 }
 int main(int argc , char * argv[])  {
@@ -61,7 +71,7 @@ int main(int argc , char * argv[])  {
     //Tokenizing
     Tokenizer tokenizer(std::move(contents)) ;
     std::vector<Token> tokens = tokenizer.tokenize() ;
-    //debugTokens(tokens) ;
+    debugTokens(tokens) ;
 
     //Parsing
     Parser parser(std::move(tokens)) ;

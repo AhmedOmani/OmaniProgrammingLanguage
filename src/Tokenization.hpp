@@ -15,9 +15,26 @@ enum class TokenType {
     ident,
     omani,
     eq ,
-    plus
+    plus ,
+    mult ,
+    sub ,
+    div
 };
 
+std::optional<int> bin_prec(TokenType type) {
+    switch (type) {
+        case TokenType::plus:
+            return 0 ;
+        case TokenType::mult:
+            return 1 ;
+        case TokenType::sub:
+            return 0 ;
+        case TokenType::div:
+            return 1 ;
+        default:
+            return {} ;
+    }
+}
 struct Token {
     TokenType type;
     std::optional<std::string> value;
@@ -42,6 +59,7 @@ struct Token {
             case TokenType::omani: return "omani";
             case TokenType::eq: return "eq";
             case TokenType::plus: return "plus";
+            case TokenType::mult: return "mult";
             default: return "unknown";
         }
     }
@@ -111,10 +129,27 @@ public:
                 tokens.push_back({.type = TokenType::close_paren}) ;
                 consume() ;
             }
+
             else if (peak().value() == '+') {
                 tokens.push_back({.type = TokenType::plus}) ;
                 consume() ;
             }
+
+            else if (peak().value() == '*') {
+                tokens.push_back({.type = TokenType::mult}) ;
+                consume() ;
+            }
+
+            else if (peak().value() == '/') {
+                tokens.push_back({.type = TokenType::div}) ;
+                consume() ;
+            }
+
+            else if (peak().value() == '-') {
+                tokens.push_back({.type = TokenType::sub}) ;
+                consume() ;
+            }
+
             else {
                 std::cerr << "Enta K7yan yasta! Ekteb Syntax s7 pls!\n" ;
                 exit(EXIT_FAILURE) ;

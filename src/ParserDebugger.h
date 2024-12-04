@@ -40,13 +40,31 @@ private:
         } else if (auto iden = std::get_if<NodeTermIden*>(&termExpr->var)) {
             return "Identifier(" + (*iden)->ident.toString() + ")";
         }
-        return "Unknown TermExpr";
-    }
-
-    static std::string print(NodeBinExpr* binExpr) {
-        if (auto addExpr = binExpr->add) {
-            return "Add(" + print(addExpr->lhs) + ", " + print(addExpr->rhs) + ")";
+        else if (auto paren = std::get_if<NodeTermParen*>(&termExpr->var)){
+            return print((*paren)->expr) ;
+        } else {
+            return "Unkwon term" ;
         }
-        return "Unknown BinExpr";
+    }
+    static std::string decide(NodeBinExpr* bin_expr) {
+        struct BinExprVisitor {
+            string operator() (const NodeBinExprAdd* add) {
+                return "Add(" + print(add->lhs) + ", " + print(add->rhs) + ")";
+            }
+            string operator() (const NodeBinExprMult* mult) {
+                return "Mult(" + print(mult->lhs) + ", " + print(mult->rhs) + ")";
+            }
+            string operator() (const NodeBinExprDiv* div) {
+                return "Div(" + print(div->lhs) + ", " + print(div->rhs) + ")";
+            }
+            string operator() (const NodeBinExprSub* sub) {
+                return "Sub(" + print(sub->lhs) + ", " + print(sub->rhs) + ")";
+            }
+        };
+        BinExprVisitor visitor ;
+        return std::visit(visitor , bin_expr->var) ;
+    }
+    static std::string print(NodeBinExpr* binExpr) {
+        return decide(binExpr) ;
     }
 };

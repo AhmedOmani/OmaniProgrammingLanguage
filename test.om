@@ -1,3 +1,2 @@
-omani x = 7 + 4 + 4 ;
-omani y = x + 5 ;
-exit(y);
+omani x = 5 * (6 + 6) / 2 ;
+exit(x) ;

@@ -16,6 +16,11 @@ struct NodeTermIden {
 
 struct NodeExpr;
 
+struct NodeTermParen {
+    NodeExpr *expr;
+};
+
+
 struct NodeBinExprAdd {
     NodeExpr *lhs ;
     NodeExpr *rhs ;
@@ -26,12 +31,22 @@ struct NodeBinExprMult {
     NodeExpr *rhs ;
 };
 
+struct NodeBinExprDiv{
+    NodeExpr *lhs ;
+    NodeExpr *rhs ;
+};
+
+struct NodeBinExprSub {
+    NodeExpr *lhs ;
+    NodeExpr *rhs ;
+};
+
 struct NodeBinExpr {
-    NodeBinExprAdd* add ;
+    std::variant<NodeBinExprAdd* , NodeBinExprMult* , NodeBinExprSub* , NodeBinExprDiv*> var ;
 };
 
 struct NodeTermExpr {
-    std::variant<NodeTermIntLit* , NodeTermIden*> var ;
+    std::variant<NodeTermIntLit* , NodeTermIden* , NodeTermParen*> var ;
 };
 struct NodeExpr {
     std::variant<NodeTermExpr* , NodeBinExpr*> var ;
@@ -58,7 +73,7 @@ public:
     //Warning for naming here if something went wrong!
     inline explicit Parser(std::vector<Token> tokens)
     : tokens(std::move(tokens))
-    , allocator(1024 * 1024 * 4)
+    , allocator(1024 * 1024 * 20)
     {}
 
     std::optional<NodeBinExpr*> parse_bin_expr() {
@@ -74,7 +89,6 @@ public:
             node_term->var = node_term_int_lit ;
             return node_term ;
         }
-
         else if (auto ident = try_consume(TokenType::ident)) {
             auto node_term_ident = allocator.alloc<NodeTermIden>() ;
             node_term_ident->ident = ident.value() ;
@@ -82,49 +96,93 @@ public:
             node_term->var = node_term_ident ;
             return node_term ;
         }
-
+        else if (auto open_paren = try_consume(TokenType::open_paren)) {
+            auto expr = parse_expr() ;
+            if (!expr.has_value()) {
+                cerr << "Exepcted expression after (" << endl;
+                exit(EXIT_FAILURE) ;
+            }
+            try_consume(TokenType::close_paren , "Exepcted ) yasta b3d El expression") ;
+            auto exprOpenParen = allocator.alloc<NodeTermParen>() ;
+            exprOpenParen->expr = expr.value() ;
+            auto node_term = allocator.alloc<NodeTermExpr>();
+            node_term->var = exprOpenParen;
+            return node_term ;
+        }
         else {
             return {} ;
         }
     }
 
-    std::optional<NodeExpr*> parse_expr() {
+    //Parsing expressions by precedence climbing algorithm
+    //https://eli.thegreenplace.net/2012/08/02/parsing-expressions-by-precedence-climbing
+    std::optional<NodeExpr*> parse_expr(int lstPrec = 0) {
 
-        if (auto term = parse_term()) {
-            if (try_consume(TokenType::plus).has_value()) {
-                auto bin_expr = allocator.alloc<NodeBinExpr>() ;
-                auto bin_exp_add = allocator.alloc<NodeBinExprAdd>() ;
-                auto lhs_expr = allocator.alloc<NodeExpr>() ;
-                lhs_expr->var = term.value() ;
-                bin_exp_add->lhs = lhs_expr ;
+        std::optional<NodeTermExpr*> term_lhs = parse_term() ;
+        if (!term_lhs.has_value()) {
+            return {} ;
+        }
+        auto expr_lhs = allocator.alloc<NodeExpr>() ;
+        expr_lhs->var = term_lhs.value() ;
 
-                if (auto rhs = parse_expr()) {
-                    bin_exp_add->rhs = rhs.value() ;
-                    bin_expr->add = bin_exp_add ;
-                    auto expr = allocator.alloc<NodeExpr>() ;
-                    expr->var = bin_expr ;
-                    return expr ;
-                } else {
-                    std::cerr<< "Experession problem" << std::endl;
+        while (true) {
+            std::optional<Token> cur_token = peak() ;
+            std::optional<int> prec ;
+            if (cur_token.has_value()) {
+                prec = bin_prec(cur_token->type) ;
+                if (!prec.has_value() || prec < lstPrec) {
+                    break;
                 }
+                cout << "Precedence "<< prec.value() << " checking " << endl;
+            } else {
+                break;
             }
-            else {
-                auto expr = allocator.alloc<NodeExpr>() ;
-                expr->var = term.value() ;
-                return expr ;
+
+            Token op = consume() ;
+            int nxtPrec = prec.value() + 1 ;
+            auto expr_rhs = parse_expr(nxtPrec) ;
+
+            if (!expr_rhs.has_value()) {
+                cerr << "Unable to parse expression" << std::endl;
+                exit(EXIT_FAILURE) ;
             }
-        }
-        else
-            return {} ;
 
-        if (auto bin_expr = parse_bin_expr()) {
-            auto node_expr = allocator.alloc<NodeExpr>() ;
-            node_expr->var = bin_expr.value() ;
-            return node_expr ;
-        }
-        else
-            return {} ;
+            auto BinExpr = allocator.alloc<NodeBinExpr>() ;
+            auto tempLHSExp = allocator.alloc<NodeExpr>() ;
+            if (!BinExpr) {
+                cerr << "Allocation error" << endl;
+                exit(EXIT_FAILURE);
+            }
 
+            if (op.type == TokenType::plus) {
+                auto add = allocator.alloc<NodeBinExprAdd>() ;
+                tempLHSExp->var = expr_lhs->var ;
+                add->lhs = tempLHSExp ;
+                add->rhs = expr_rhs.value() ;
+                BinExpr->var = add ;
+            } else if (op.type == TokenType::mult) {
+                auto mult = allocator.alloc<NodeBinExprMult>() ;
+                tempLHSExp->var = expr_lhs->var ;
+                mult->lhs = tempLHSExp ;
+                mult->rhs = expr_rhs.value() ;
+                BinExpr->var = mult ;
+            } else if (op.type == TokenType::div) {
+                auto div = allocator.alloc<NodeBinExprDiv>() ;
+                tempLHSExp->var = expr_lhs->var ;
+                div->lhs = tempLHSExp ;
+                div->rhs = expr_rhs.value() ;
+                BinExpr->var = div ;
+            }
+            else if (op.type == TokenType::sub) {
+                auto sub = allocator.alloc<NodeBinExprSub>() ;
+                tempLHSExp->var = expr_lhs->var ;
+                sub->lhs = tempLHSExp ;
+                sub->rhs = expr_rhs.value() ;
+                BinExpr->var = sub ;
+            }
+            expr_lhs->var = BinExpr ;
+        }
+        return expr_lhs ;
     }
 
     std::optional<NodeStmt*> parse_stmt() {
@@ -193,6 +251,7 @@ public:
                 exit(EXIT_FAILURE) ;
             }
         }
+        cout << prog.stmts.size() << endl;
         return prog ;
     }
 private:
