@@ -1,2 +1,6 @@
-omani x = 5 * (6 + 6) / 2 ;
+omani x = 10 - 10 ;
+omani y = 9 ;
+if (x) {
+    exit(y) ;
+}
 exit(x) ;

@@ -60,8 +60,20 @@ struct NodeStmtOmani {
     Token ident ;
     NodeExpr* expr ;
 };
+
+struct NodeStmt;
+
+struct NodeScope {
+    std::vector<NodeStmt*> stmts;
+};
+
+struct NodeStmtIf {
+    NodeExpr* expr ;
+    NodeScope* scope ;
+};
+
 struct NodeStmt {
-    std::variant<NodeStmtExit* , NodeStmtOmani*> var ;
+    std::variant<NodeStmtExit* , NodeStmtOmani* , NodeScope* , NodeStmtIf*> var ;
 };
 
 struct NodeProg {
@@ -185,6 +197,16 @@ public:
         return expr_lhs ;
     }
 
+    std::optional<NodeScope*> parse_scope() {
+        if (!try_consume(TokenType::open_curly).has_value()) {
+            return {} ;
+        }
+        auto scope = allocator.alloc<NodeScope>() ;
+        while (auto stmt = parse_stmt()) scope->stmts.push_back(stmt.value()) ;
+        try_consume(TokenType::close_curly , "Enta nset el '}' ya m3lm");
+        return scope ;
+    }
+
     std::optional<NodeStmt*> parse_stmt() {
 
         auto validateExitSyntax = [&]() {
@@ -197,6 +219,14 @@ public:
             return peak().has_value()  && peak().value().type == TokenType::omani
             && peak(1).has_value() && peak(1).value().type == TokenType::ident
             && peak(2).has_value() && peak(2).value().type == TokenType::eq;
+        };
+
+        auto validScopeStmt = [&] {
+            return peak().has_value() && peak().value().type == TokenType::open_curly ;
+        };
+
+        auto validateIfStmt = [&] {
+            return try_consume(TokenType::if_) ;
         };
 
         if (validateExitSyntax()) {
@@ -236,7 +266,40 @@ public:
             auto node_stmt = allocator.alloc<NodeStmt>() ;
             node_stmt->var = stmt_omani ;
             return node_stmt ;
-        } else {
+        }
+
+        else if (validScopeStmt()) {
+            if (auto scope = parse_scope()) {
+                auto stmt = allocator.alloc<NodeStmt>() ;
+                stmt->var = scope.value() ;
+                return stmt ;
+            } else {
+                std::cerr << "Invalid Scope" << endl;
+                exit(EXIT_FAILURE);
+            }
+        }
+
+        else if (validateIfStmt()) {
+            try_consume(TokenType::open_paren , "Expected '('");
+            auto stmt_if = allocator.alloc<NodeStmtIf>();
+            if (auto expr = parse_expr()) {
+                stmt_if->expr = expr.value() ;
+            } else {
+                std::cerr << "Invalid expression" << "\n" ;
+                exit(EXIT_FAILURE) ;
+            }
+            try_consume(TokenType::close_paren , "Expected ')'") ;
+            if (auto scope = parse_scope()) {
+                stmt_if->scope = scope.value() ;
+            } else {
+                std::cerr << "Invalid Scope" << "\n" ;
+                exit(EXIT_FAILURE) ;
+            }
+            auto stmt = allocator.alloc<NodeStmt>() ;
+            stmt->var = stmt_if ;
+            return stmt ;
+        }
+        else {
             return {} ;
         }
     }

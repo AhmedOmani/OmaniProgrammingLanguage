@@ -18,7 +18,10 @@ enum class TokenType {
     plus ,
     mult ,
     sub ,
-    div
+    div ,
+    open_curly,
+    close_curly,
+    if_
 };
 
 std::optional<int> bin_prec(TokenType type) {
@@ -60,6 +63,9 @@ struct Token {
             case TokenType::eq: return "eq";
             case TokenType::plus: return "plus";
             case TokenType::mult: return "mult";
+            case TokenType::open_curly: return "{" ;
+            case TokenType::close_curly: return "}" ;
+            case TokenType::if_: return "if" ;
             default: return "unknown";
         }
     }
@@ -88,6 +94,8 @@ public:
                     tokens.push_back({.type = TokenType::exit}) ;
                 } else if (cur_str == "omani") {
                     tokens.push_back({.type = TokenType::omani}) ;
+                } else if (cur_str == "if") {
+                    tokens.push_back({.type = TokenType::if_}) ;
                 }
                 else {
                     tokens.push_back({.type = TokenType::ident , .value = cur_str}) ;
@@ -150,10 +158,21 @@ public:
                 consume() ;
             }
 
+            else if (peak().value() == '{') {
+                tokens.push_back({.type = TokenType::open_curly}) ;
+                consume() ;
+            }
+
+            else if (peak().value() == '}') {
+                tokens.push_back({.type = TokenType::close_curly}) ;
+                consume() ;
+            }
+
             else {
                 std::cerr << "Enta K7yan yasta! Ekteb Syntax s7 pls!\n" ;
                 exit(EXIT_FAILURE) ;
             }
+
         }
         cur_idx = 0 ;
         return tokens ;
