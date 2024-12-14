@@ -1,6 +1,7 @@
 omani x = 10 - 10 ;
-omani y = 9 ;
+omani y = 10 ;
+//A7a
 if (x) {
     exit(y) ;
 }
-exit(x) ;
+//exit(y) ;

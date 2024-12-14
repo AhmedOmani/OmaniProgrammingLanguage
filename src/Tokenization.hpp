@@ -114,6 +114,12 @@ public:
                 continue;
             }
 
+            else if (peak().value() == '/' && peak(1).has_value() && peak(1).value() == '/') {
+                consume() ;
+                consume() ;
+                while (peak().has_value() && peak().value() != '\n') consume() ;
+            }
+
             else if (peak().value() == ';') {
                 tokens.push_back({.type = TokenType::semi});
                 consume() ;

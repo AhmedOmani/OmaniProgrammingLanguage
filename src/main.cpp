@@ -72,14 +72,14 @@ int main(int argc , char * argv[])  {
     //Tokenizing
     Tokenizer tokenizer(std::move(contents)) ;
     std::vector<Token> tokens = tokenizer.tokenize() ;
-    debugTokens(tokens) ;
+    //debugTokens(tokens) ;
 
     //Parsing
     Parser parser(std::move(tokens)) ;
     std::optional<NodeProg> tree = parser.parse_prog() ;
 
     DebugPrinter debug ;
-    cout << debug.print(tree) ;
+    //cout << debug.print(tree) ;
 
     if (!tree.has_value()) {
         std::cerr << "No exit statement found!" << std::endl;
