@@ -96,6 +96,31 @@ public:
         end_scope() ;
     }
 
+    void gen_if_pred(NodeIfPred* pred, const std::string &end_label) {
+        struct PredVisitor {
+            Generator *gen ;
+            const std::string &end_label ;
+            void operator()(const NodeIfPredElif* elif) const {
+                gen->gen_expr(elif->expr)  ;
+                gen->pop("rax") ;
+                std::string lstLabel = gen->create_label() ;
+                gen->output << "    test rax, rax\n" ;
+                gen->output << "    jz " << lstLabel << "\n" ;
+                gen->gen_scope(elif->scope) ;
+                gen->output << "    jmp " << end_label << "\n";
+                if (elif->pred.has_value()) {
+                    gen->output << lstLabel << ":\n" ;
+                    gen->gen_if_pred(elif->pred.value() , end_label) ;
+                }
+            }
+            void operator()(const NodeIfPredElse* else_) const {
+                gen->gen_scope(else_->scope) ;
+            }
+        };
+        PredVisitor visitor{.gen = this , .end_label = end_label} ;
+        std::visit(visitor , pred->var) ;
+    }
+
     void gen_stmt(const NodeStmt *stmt)  {
         struct StmtVisitor {
             Generator *gen ;
@@ -130,6 +155,11 @@ public:
                 gen->output << "    jz " << lstLabel << "\n" ;
                 gen->gen_scope(stmt_if->scope) ;
                 gen->output << lstLabel << ":\n" ;
+                if (stmt_if->pred.has_value()) {
+                    std::string end_label = gen->create_label() ;
+                    gen->gen_if_pred(stmt_if->pred.value() , end_label) ;
+                    gen->output << end_label << ":\n";
+                }
             }
         };
         StmtVisitor visitor{.gen = this} ;

@@ -21,7 +21,9 @@ enum class TokenType {
     div ,
     open_curly,
     close_curly,
-    if_
+    if_,
+    elif,
+    else_,
 };
 
 std::optional<int> bin_prec(TokenType type) {
@@ -96,6 +98,10 @@ public:
                     tokens.push_back({.type = TokenType::omani}) ;
                 } else if (cur_str == "if") {
                     tokens.push_back({.type = TokenType::if_}) ;
+                } else if (cur_str == "elif") {
+                    tokens.push_back({.type = TokenType::elif}) ;
+                } else if (cur_str == "else") {
+                    tokens.push_back({.type = TokenType::else_}) ;
                 }
                 else {
                     tokens.push_back({.type = TokenType::ident , .value = cur_str}) ;
@@ -120,6 +126,20 @@ public:
                 while (peak().has_value() && peak().value() != '\n') consume() ;
             }
 
+            else if (peak().value() == '/' && peak(1).has_value() && peak(1).value() == '*') {
+                consume() ;
+                consume() ;
+                while (peak().has_value()) {
+                    if (peak().value() == '*' && peak(1).has_value() && peak(1).value() == '/') {
+                        break;
+                    }
+                    std::cout << consume() << std::endl;
+                }
+                if (peak().has_value())
+                    std::cout << consume() << std::endl ;
+                if (peak().has_value())
+                    consume() ;
+            }
             else if (peak().value() == ';') {
                 tokens.push_back({.type = TokenType::semi});
                 consume() ;

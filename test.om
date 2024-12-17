@@ -1,7 +1,15 @@
-omani x = 10 - 10 ;
-omani y = 10 ;
-//A7a
-if (x) {
+omani x = 1 ;
+omani y = 11;
+omani z = 12 ;
+omani t = 5 ;
+/*
+//vsdvsdv
+*/
+if (1) {
     exit(y) ;
+} elif (0) {
+    exit(z) ;
+} else {
+    exit(5) ;
 }
-//exit(y) ;
+exit(0) ;

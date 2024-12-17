@@ -20,7 +20,6 @@ struct NodeTermParen {
     NodeExpr *expr;
 };
 
-
 struct NodeBinExprAdd {
     NodeExpr *lhs ;
     NodeExpr *rhs ;
@@ -67,9 +66,26 @@ struct NodeScope {
     std::vector<NodeStmt*> stmts;
 };
 
-struct NodeStmtIf {
-    NodeExpr* expr ;
+struct NodeIfPred ;
+
+struct NodeIfPredElif {
+    NodeExpr* expr{} ;
+    NodeScope* scope{} ;
+    std::optional<NodeIfPred*> pred ;
+};
+
+struct NodeIfPredElse {
     NodeScope* scope ;
+};
+
+struct NodeIfPred {
+    std::variant<NodeIfPredElif* , NodeIfPredElse*> var ;
+};
+
+struct NodeStmtIf {
+    NodeExpr* expr{};
+    NodeScope* scope{};
+    std::optional<NodeIfPred*> pred ;
 };
 
 struct NodeStmt {
@@ -145,7 +161,6 @@ public:
                 if (!prec.has_value() || prec < lstPrec) {
                     break;
                 }
-                cout << "Precedence "<< prec.value() << " checking " << endl;
             } else {
                 break;
             }
@@ -207,6 +222,42 @@ public:
         return scope ;
     }
 
+    std::optional<NodeIfPred*> parse_if_pred() {
+        if (try_consume(TokenType::elif)) {
+            try_consume(TokenType::open_paren ,  "Expected '('") ;
+            auto elif = allocator.alloc<NodeIfPredElif>();
+            if (auto expr = parse_expr()) {
+                elif->expr = expr.value() ;
+            } else {
+                std::cerr << "Expected Expression" << std::endl ;
+                exit(EXIT_FAILURE) ;
+            }
+            try_consume(TokenType::close_paren , "Expected ')'") ;
+            if (auto scope = parse_scope()) {
+                elif->scope = scope.value() ;
+            } else {
+                std::cerr<< "Expected scope" << std::endl;
+                exit(EXIT_FAILURE) ;
+            }
+            elif->pred = parse_if_pred() ;
+            auto pred = allocator.alloc<NodeIfPred>() ;
+            pred->var = elif ;
+            return pred ;
+        }
+        if (try_consume(TokenType::else_)) {
+            auto else_ = allocator.alloc<NodeIfPredElse>() ;
+            if (auto scope = parse_scope()) {
+                else_->scope = scope.value() ;
+            } else {
+                std::cerr<< "Expected scope" << std::endl;
+                exit(EXIT_FAILURE) ;
+            }
+            auto pred = allocator.alloc<NodeIfPred>() ;
+            pred->var = else_ ;
+            return pred ;
+        }
+        return {} ;
+    }
     std::optional<NodeStmt*> parse_stmt() {
 
         auto validateExitSyntax = [&]() {
@@ -295,10 +346,13 @@ public:
                 std::cerr << "Invalid Scope" << "\n" ;
                 exit(EXIT_FAILURE) ;
             }
+            stmt_if->pred = parse_if_pred() ;
             auto stmt = allocator.alloc<NodeStmt>() ;
             stmt->var = stmt_if ;
             return stmt ;
         }
+
+
         else {
             return {} ;
         }
