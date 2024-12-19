@@ -74,7 +74,6 @@ public:
     }
 
     void gen_expr(const NodeExpr* expr)  {
-
         struct ExprVisitor {
             Generator *gen ;
 
@@ -100,19 +99,23 @@ public:
         struct PredVisitor {
             Generator *gen ;
             const std::string &end_label ;
+
             void operator()(const NodeIfPredElif* elif) const {
+                std::string current_label = gen->create_label();
                 gen->gen_expr(elif->expr)  ;
                 gen->pop("rax") ;
-                std::string lstLabel = gen->create_label() ;
                 gen->output << "    test rax, rax\n" ;
-                gen->output << "    jz " << lstLabel << "\n" ;
+                gen->output << "    jz " << current_label << "\n" ;
                 gen->gen_scope(elif->scope) ;
                 gen->output << "    jmp " << end_label << "\n";
+                gen->output << current_label << ":\n";
                 if (elif->pred.has_value()) {
-                    gen->output << lstLabel << ":\n" ;
                     gen->gen_if_pred(elif->pred.value() , end_label) ;
+                } else {
+                    gen->output << "    jmp " << end_label << "\n";
                 }
             }
+
             void operator()(const NodeIfPredElse* else_) const {
                 gen->gen_scope(else_->scope) ;
             }
@@ -132,6 +135,7 @@ public:
             }
 
             void operator() (const NodeStmtOmani* stmt_omani) const {
+                gen->output << "   ;; Omani\n" ;
                 auto it = std::find_if(gen->variables.cbegin() ,gen->variables.cend() ,[&](const Var &var) {
                     return var.name == stmt_omani->ident.value.value() ;
                 });
@@ -141,25 +145,45 @@ public:
                 }
                 gen->variables.push_back({Var {.name = stmt_omani->ident.value.value() , .stack_loc = gen->stack_size } });
                 gen->gen_expr(stmt_omani->expr) ;
+                gen->output << "   ;; /Omani\n" ;
+            }
+
+            void operator() (const NodeStmtAssign* stmt_assign) const {
+                const auto it = std::ranges::find_if(gen->variables , [&](const Var& var) {
+                    return var.name == stmt_assign->ident.value.value() ;
+                }) ;
+                if (it == gen->variables.end()) {
+                    std::cerr << "Undeclared identefier: " << stmt_assign->ident.value.value() << "\n" ;
+                    exit(EXIT_FAILURE) ;
+                }
+                gen->gen_expr(stmt_assign->expr) ;
+                gen->pop("rax") ;
+                gen->output << "    mov [rsp + " << (gen->stack_size - it->stack_loc - 1) * 8 << "], rax\n" ;
             }
 
             void operator() (const NodeScope* scope) const {
+                gen->output << "    ;; scope\n" ;
                 gen->gen_scope(scope) ;
+                gen->output << "    ;; scope\n" ;
             }
 
             void operator() (const NodeStmtIf* stmt_if) const {
+                gen->output << "    ;; if\n" ;
                 gen->gen_expr(stmt_if->expr)  ;
                 gen->pop("rax") ;
                 std::string lstLabel = gen->create_label() ;
                 gen->output << "    test rax, rax\n" ;
                 gen->output << "    jz " << lstLabel << "\n" ;
                 gen->gen_scope(stmt_if->scope) ;
-                gen->output << lstLabel << ":\n" ;
+
+                const std::string end_label = gen->create_label();
+                gen->output << "    jmp " << end_label << "\n";
+                gen->output << lstLabel << ":\n";
                 if (stmt_if->pred.has_value()) {
-                    std::string end_label = gen->create_label() ;
                     gen->gen_if_pred(stmt_if->pred.value() , end_label) ;
-                    gen->output << end_label << ":\n";
                 }
+                gen->output << end_label << ":\n" ;
+                gen->output << "    ;; /if\n" ;
             }
         };
         StmtVisitor visitor{.gen = this} ;

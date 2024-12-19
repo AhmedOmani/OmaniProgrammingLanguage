@@ -1,7 +1,6 @@
 #pragma once
 #include "Tokenization.hpp"
 #include <variant>
-
 #include "Arena.h"
 
 using namespace std ;
@@ -88,8 +87,13 @@ struct NodeStmtIf {
     std::optional<NodeIfPred*> pred ;
 };
 
+struct NodeStmtAssign {
+    Token ident ;
+    NodeExpr* expr ;
+};
+
 struct NodeStmt {
-    std::variant<NodeStmtExit* , NodeStmtOmani* , NodeScope* , NodeStmtIf*> var ;
+    std::variant<NodeStmtExit* , NodeStmtOmani* , NodeScope* , NodeStmtIf* , NodeStmtAssign*> var ;
 };
 
 struct NodeProg {
@@ -258,6 +262,7 @@ public:
         }
         return {} ;
     }
+
     std::optional<NodeStmt*> parse_stmt() {
 
         auto validateExitSyntax = [&]() {
@@ -270,6 +275,11 @@ public:
             return peak().has_value()  && peak().value().type == TokenType::omani
             && peak(1).has_value() && peak(1).value().type == TokenType::ident
             && peak(2).has_value() && peak(2).value().type == TokenType::eq;
+        };
+
+        auto validateAssignSyntax = [&] {
+            return peak().has_value() && peak().value().type == TokenType::ident
+            && peak(1).has_value() && peak(1).value().type == TokenType::eq ;
         };
 
         auto validScopeStmt = [&] {
@@ -300,26 +310,42 @@ public:
             return node_stmt ;
         }
 
-        else if (validateOmaniSyntax()) {
+        if (validateOmaniSyntax()) {
             consume() ;
             auto stmt_omani = allocator.alloc<NodeStmtOmani>() ;
             stmt_omani->ident = consume() ;
             consume() ;
             if (auto expr = parse_expr()) {
                 stmt_omani->expr = expr.value() ;
-            } else {
+            }
+            else {
                 std::cerr << "Invalid expression for assign operator" << std::endl;
                 exit(EXIT_FAILURE) ;
             }
 
             try_consume(TokenType::semi ,  "Mtensash el ';' yasta");
-
             auto node_stmt = allocator.alloc<NodeStmt>() ;
             node_stmt->var = stmt_omani ;
             return node_stmt ;
         }
 
-        else if (validScopeStmt()) {
+        if (validateAssignSyntax()) {
+            const auto stmt_assign = allocator.alloc<NodeStmtAssign>();
+            stmt_assign->ident = consume() ;
+            consume() ;
+            if (const auto expr = parse_expr()) {
+                stmt_assign->expr = expr.value() ;
+            } else {
+                cerr << "Expected Expression for assigning" << "\n" ;
+                exit(EXIT_FAILURE) ;
+            }
+            try_consume(TokenType::semi ,  "Mtensash el ';' yasta");
+            auto node_stmt = allocator.alloc<NodeStmt>();
+            node_stmt->var = stmt_assign ;
+            return node_stmt;
+        }
+
+        if (validScopeStmt()) {
             if (auto scope = parse_scope()) {
                 auto stmt = allocator.alloc<NodeStmt>() ;
                 stmt->var = scope.value() ;
@@ -330,7 +356,7 @@ public:
             }
         }
 
-        else if (validateIfStmt()) {
+        if (validateIfStmt()) {
             try_consume(TokenType::open_paren , "Expected '('");
             auto stmt_if = allocator.alloc<NodeStmtIf>();
             if (auto expr = parse_expr()) {
@@ -352,10 +378,7 @@ public:
             return stmt ;
         }
 
-
-        else {
-            return {} ;
-        }
+        return {} ;
     }
 
     std:: optional<NodeProg> parse_prog() {

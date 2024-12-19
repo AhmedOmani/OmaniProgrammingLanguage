@@ -1,15 +1,10 @@
-omani x = 1 ;
 omani y = 11;
-omani z = 12 ;
-omani t = 5 ;
-/*
-//vsdvsdv
-*/
-if (1) {
+y = 20 ;
+if (0) {
     exit(y) ;
 } elif (0) {
-    exit(z) ;
+    exit(4) ;
 } else {
-    exit(5) ;
+    exit(9) ;
 }
-exit(0) ;
+exit(10) ;
